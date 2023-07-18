@@ -1,7 +1,6 @@
-SELECT reporting_grp, category_initial, account_no,
-                    account_desc, group_no, account_group_desc,
+SELECT reporting_grp, category_initial,  group_no, account_group_desc,
                     (sum(debit_amount) - sum(credit_amt)) balance, 0 cumulative_balance
-               FROM (SELECT   reporting_grp, e.account_no, e.account_desc,
+               FROM (SELECT   reporting_grp, 
                               e.group_no AS group_no,
                               mfin.gl_account_pkg.f_gl_ac_group_name
                                                (e.group_no)
@@ -96,10 +95,8 @@ SELECT reporting_grp, category_initial, account_no,
                           AND a.approved_flag = 'Y'
                      GROUP BY c.reporting_grp,
                               a.fiscal_year,
-                              e.account_desc,
-                              group_no,
-                              e.account_no,
-                              DECODE (e.category_initial,
+                                group_no,
+                             DECODE (e.category_initial,
                                       'A', 'Assets',
                                       'L', 'Liabilities',
                                       'I', 'Income',
@@ -111,13 +108,11 @@ SELECT reporting_grp, category_initial, account_no,
                 AND DECODE (tem.debit_amount,
                             0, tem.credit_amt,
                             tem.debit_amount
-                           ) > 0 group by  reporting_grp, category_initial, account_no,
-                    account_desc, group_no, account_group_desc
-         union
-                    SELECT reporting_grp, category_initial, account_no,
-                    account_desc, group_no, account_group_desc,
-                     0 balance,  (sum(debit_amount) - sum(credit_amt)) cumulative_balance
-               FROM (SELECT   reporting_grp, e.account_no, e.account_desc,
+                           ) > 0 group by  reporting_grp, category_initial, group_no, account_group_desc
+                    union
+                    SELECT reporting_grp, category_initial, group_no, account_group_desc,
+                    (sum(debit_amount) - sum(credit_amt)) balance, 0 cumulative_balance
+               FROM (SELECT   reporting_grp, 
                               e.group_no AS group_no,
                               mfin.gl_account_pkg.f_gl_ac_group_name
                                                (e.group_no)
@@ -214,10 +209,8 @@ SELECT reporting_grp, category_initial, account_no,
                           and c.reporting_grp is not null
                           AND a.approved_flag = 'Y'
                      GROUP BY c.reporting_grp,
-                              a.fiscal_year,
-                              e.account_desc,
-                              group_no,
-                              e.account_no,
+                              a.fiscal_year,                         
+                              group_no,                            
                               DECODE (e.category_initial,
                                       'A', 'Assets',
                                       'L', 'Liabilities',
@@ -230,6 +223,5 @@ SELECT reporting_grp, category_initial, account_no,
                 AND DECODE (tem.debit_amount,
                             0, tem.credit_amt,
                             tem.debit_amount
-                           ) > 0 group by  reporting_grp, category_initial, account_no,
-                    account_desc, group_no, account_group_desc
-                 
+                           ) > 0 group by  reporting_grp, category_initial, group_no, account_group_desc
+                    
