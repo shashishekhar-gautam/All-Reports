@@ -1,0 +1,52 @@
+SELECT h.institute_grp_code,g.institute_code,DECODE (c.category_initial,  'A', 'Assets',  'L', 'Liabilities')
+            AS account_type,
+         DECODE (c.category_initial,  'A', 2,  'L', 1) AS TYPE,
+         NVL (e.display_seq, 0) AS group_display_seq,
+         NVL (d.display_seq, 0) AS sub_category_display_seq,
+         INITCAP(c.category_desc) AS category_desc,
+         e.group_no AS group_no,
+         INITCAP(d.sub_category_desc) AS sub_category,
+         e.group_name AS group_name,
+         f.account_desc AS account_desc,
+         a.account_code AS account_code,
+         NVL (f.display_seq, 0) AS acc_head_seq,
+         NVL (SUM (DECODE (a.dr_cr_flag, 'D', a.amount)), 0)
+         - NVL (SUM (DECODE (a.dr_cr_flag, 'C', a.amount)), 0)
+            AS amount
+    FROM mfin.gl_transaction_detail a,
+         mfin.gl_transaction_master b,
+         mfin.gl_category c,
+         mfin.gl_sub_category d,
+         mfin.gl_account_group e,
+         mfin.gl_account_head f,
+         mfin.ms_institute g,
+         mfin.ms_institute_map h
+   WHERE     c.category_initial IN ('A', 'L')
+         AND f.account_code = a.account_code
+         AND c.category_no = d.category_no
+         AND d.sub_category_no = e.sub_category_no
+         AND e.group_no = f.group_no
+         AND a.voucher_no = b.voucher_no
+         AND b.fiscal_year = :p_fiscal_year
+         AND b.transaction_date <= :p_end_date
+         AND b.approved_flag = 'Y'
+         AND b.tran_office_code = g.institute_code
+         AND g.institute_code = h.institute_code
+         AND h.institute_grp_code LIKE NVL (:p_office_code, '%')
+GROUP BY c.category_initial,
+         c.category_no,
+         c.category_desc,
+         d.sub_category_no,
+         d.sub_category_desc,
+         e.group_no,
+         e.group_name,
+         a.account_code,
+         f.account_desc,
+         f.account_code,
+         d.display_seq,
+         e.display_seq,
+         f.display_seq,h.institute_grp_code,g.institute_code
+ORDER BY account_type,
+         c.category_desc,
+         d.display_seq,
+         e.group_no
