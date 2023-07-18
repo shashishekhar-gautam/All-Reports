@@ -1,0 +1,235 @@
+SELECT reporting_grp, category_initial, account_no,
+                    account_desc, group_no, account_group_desc,
+                    (sum(debit_amount) - sum(credit_amt)) balance, 0 cumulative_balance
+               FROM (SELECT   reporting_grp, e.account_no, e.account_desc,
+                              e.group_no AS group_no,
+                              mfin.gl_account_pkg.f_gl_ac_group_name
+                                               (e.group_no)
+                                                           account_group_desc,
+                              DECODE (e.category_initial,
+                                      'A', 'Assets',
+                                      'L', 'Liabilities',
+                                      'I', 'Income',
+                                      'E', 'Expenditure'
+                                     ) category_initial,
+                              a.fiscal_year,
+                              NVL
+                                 (CASE
+                                     WHEN   NVL (SUM (DECODE (b.dr_cr_flag,
+                                                              'D', b.amount
+                                                             )
+                                                     ),
+                                                 0
+                                                )
+                                          - NVL (SUM (DECODE (b.dr_cr_flag,
+                                                              'C', b.amount
+                                                             )
+                                                     ),
+                                                 0
+                                                ) >= 0
+                                        THEN   NVL
+                                                  (SUM (DECODE (b.dr_cr_flag,
+                                                                'D', b.amount
+                                                               )
+                                                       ),
+                                                   0
+                                                  )
+                                             - NVL
+                                                  (SUM (DECODE (b.dr_cr_flag,
+                                                                'C', b.amount
+                                                               )
+                                                       ),
+                                                   0
+                                                  )
+                                  END,
+                                  0
+                                 ) AS debit_amount,
+                              NVL
+                                 (CASE
+                                     WHEN   NVL (SUM (DECODE (b.dr_cr_flag,
+                                                              'D', b.amount
+                                                             )
+                                                     ),
+                                                 0
+                                                )
+                                          - NVL (SUM (DECODE (b.dr_cr_flag,
+                                                              'C', b.amount
+                                                             )
+                                                     ),
+                                                 0
+                                                ) < 0
+                                        THEN ABS
+                                               (  NVL
+                                                     (SUM
+                                                         (DECODE
+                                                                (b.dr_cr_flag,
+                                                                 'D', b.amount
+                                                                )
+                                                         ),
+                                                      0
+                                                     )
+                                                - NVL
+                                                     (SUM
+                                                         (DECODE
+                                                                (b.dr_cr_flag,
+                                                                 'C', b.amount
+                                                                )
+                                                         ),
+                                                      0
+                                                     )
+                                               )
+                                  END,
+                                  0
+                                 ) AS credit_amt
+                         FROM mfin.gl_transaction_master a,
+                              mfin.gl_transaction_detail b,
+                              mfin.ms_institute c,
+                              mfin.gl_account_head e
+                        WHERE a.voucher_no = b.voucher_no
+                          AND e.account_code = b.account_code(+)
+                          AND a.transaction_date BETWEEN :p_start_date
+                                                     AND :p_end_date
+                          AND e.group_no LIKE NVL (:p_group, '%')
+                          AND a.tran_office_code = c.institute_code
+                          AND b.account_code = e.account_code
+                          and c.reporting_grp is not null
+                          AND a.approved_flag = 'Y'
+                     GROUP BY c.reporting_grp,
+                              a.fiscal_year,
+                              e.account_desc,
+                              group_no,
+                              e.account_no,
+                              DECODE (e.category_initial,
+                                      'A', 'Assets',
+                                      'L', 'Liabilities',
+                                      'I', 'Income',
+                                      'E', 'Expenditure'
+                                     )
+                     ORDER BY reporting_grp,
+                              TO_NUMBER (e.account_no)) tem
+              WHERE 1 = 1
+                AND DECODE (tem.debit_amount,
+                            0, tem.credit_amt,
+                            tem.debit_amount
+                           ) > 0 group by  reporting_grp, category_initial, account_no,
+                    account_desc, group_no, account_group_desc
+         union
+                    SELECT reporting_grp, category_initial, account_no,
+                    account_desc, group_no, account_group_desc,
+                     0 balance,  (sum(debit_amount) - sum(credit_amt)) cumulative_balance
+               FROM (SELECT   reporting_grp, e.account_no, e.account_desc,
+                              e.group_no AS group_no,
+                              mfin.gl_account_pkg.f_gl_ac_group_name
+                                               (e.group_no)
+                                                           account_group_desc,
+                              DECODE (e.category_initial,
+                                      'A', 'Assets',
+                                      'L', 'Liabilities',
+                                      'I', 'Income',
+                                      'E', 'Expenditure'
+                                     ) category_initial,
+                              a.fiscal_year,
+                              NVL
+                                 (CASE
+                                     WHEN   NVL (SUM (DECODE (b.dr_cr_flag,
+                                                              'D', b.amount
+                                                             )
+                                                     ),
+                                                 0
+                                                )
+                                          - NVL (SUM (DECODE (b.dr_cr_flag,
+                                                              'C', b.amount
+                                                             )
+                                                     ),
+                                                 0
+                                                ) >= 0
+                                        THEN   NVL
+                                                  (SUM (DECODE (b.dr_cr_flag,
+                                                                'D', b.amount
+                                                               )
+                                                       ),
+                                                   0
+                                                  )
+                                             - NVL
+                                                  (SUM (DECODE (b.dr_cr_flag,
+                                                                'C', b.amount
+                                                               )
+                                                       ),
+                                                   0
+                                                  )
+                                  END,
+                                  0
+                                 ) AS debit_amount,
+                              NVL
+                                 (CASE
+                                     WHEN   NVL (SUM (DECODE (b.dr_cr_flag,
+                                                              'D', b.amount
+                                                             )
+                                                     ),
+                                                 0
+                                                )
+                                          - NVL (SUM (DECODE (b.dr_cr_flag,
+                                                              'C', b.amount
+                                                             )
+                                                     ),
+                                                 0
+                                                ) < 0
+                                        THEN ABS
+                                               (  NVL
+                                                     (SUM
+                                                         (DECODE
+                                                                (b.dr_cr_flag,
+                                                                 'D', b.amount
+                                                                )
+                                                         ),
+                                                      0
+                                                     )
+                                                - NVL
+                                                     (SUM
+                                                         (DECODE
+                                                                (b.dr_cr_flag,
+                                                                 'C', b.amount
+                                                                )
+                                                         ),
+                                                      0
+                                                     )
+                                               )
+                                  END,
+                                  0
+                                 ) AS credit_amt
+                         FROM mfin.gl_transaction_master a,
+                              mfin.gl_transaction_detail b,
+                              mfin.ms_institute c,
+                              mfin.gl_account_head e
+                        WHERE a.voucher_no = b.voucher_no
+                          AND e.account_code = b.account_code(+)
+                          AND a.transaction_date
+                                 BETWEEN (SELECT start_date
+                                            FROM mfin.ms_nepali_fiscal_year
+                                           WHERE fiscal_year = :p_fy)
+                                     AND :p_end_date
+                          AND e.group_no LIKE NVL (:p_group, '%')
+                          AND a.tran_office_code = c.institute_code
+                          AND b.account_code = e.account_code
+                          and c.reporting_grp is not null
+                          AND a.approved_flag = 'Y'
+                     GROUP BY c.reporting_grp,
+                              a.fiscal_year,
+                              e.account_desc,
+                              group_no,
+                              e.account_no,
+                              DECODE (e.category_initial,
+                                      'A', 'Assets',
+                                      'L', 'Liabilities',
+                                      'I', 'Income',
+                                      'E', 'Expenditure'
+                                     )
+                     ORDER BY reporting_grp,
+                              TO_NUMBER (e.account_no)) tem
+              WHERE 1 = 1
+                AND DECODE (tem.debit_amount,
+                            0, tem.credit_amt,
+                            tem.debit_amount
+                           ) > 0 group by  reporting_grp, category_initial, account_no,
+                    account_desc, group_no, account_group_desc
+                 
